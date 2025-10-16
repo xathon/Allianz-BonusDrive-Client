@@ -2,6 +2,7 @@ import requests
 import logging
 from urllib.parse import urlencode
 from requests.cookies import RequestsCookieJar
+from datetime import datetime, timedelta
 
 # logging.basicConfig(level=print)
 
@@ -36,7 +37,6 @@ class APIClient:
 
     def authenticate(self):
         """Authenticate the user and store session cookies."""
-        print(f"headers: {self.headers.items()}")
         if not self.tgt:
             # Step 1: Get TGT
             tgt_response = self.session.post(
@@ -61,10 +61,8 @@ class APIClient:
         )
         st_response.raise_for_status()
         service_ticket = st_response.text.strip()
-        print(f"Cookies in TGT request: {st_response.cookies.get_dict()}")
         self.session.cookies.update(st_response.cookies)
         self.headers.pop("Content-Type", None)
-        print(f"Service Ticket: {service_ticket}")
 
         # Step 3: Use ST to set cookies
         cookies_response = self.session.post(
@@ -74,7 +72,6 @@ class APIClient:
             cookies=self.session.cookies,  # Use cookies from the cookiejar
             allow_redirects=False,  # Follow the redirect to capture the cookie
         )
-        print(cookies_response.cookies.get_dict())
         self.session.cookies.update(cookies_response.cookies)
 
         userId_response = self.session.get(
@@ -111,4 +108,119 @@ class APIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
-        return response.json()["items"][0]
+        return response.json()["items"]
+
+    def get_vehicleId(self):
+        """Query the vehicles endpoint and return the Id of the first vehicle."""
+        # If you have multiple vehicles, you need to adjust this method
+        # or buy me a second car, so I'll need it myself
+        if not self.authenticated:
+            raise RuntimeError(
+                "Client is not authenticated. Call authenticate() first."
+            )
+
+        url = f"{self.base_url}/ipaid/api/v2/users/{self.userId}/vehicles"
+        response = self.session.get(
+            url,
+            headers={
+                "Accept-Encoding": "gzip",
+                "Accept-Language": "en-US",
+                "Connection": "Keep-Alive",
+                "Platform": "Android",
+                "User-Agent": "okhttp/4.12.0",
+            },
+            cookies=self.session.cookies,
+        )
+        response.raise_for_status()
+        return response.json()[0]["vehicleId"]
+
+    def get_badges(
+        self,
+        type: str = "daily",
+        endDate: str = datetime.today().strftime("%Y-%m-%d"),
+        startDate: str = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
+    ):
+        """Query the badges endpoint and return the JSON response."""
+        if not self.authenticated:
+            raise RuntimeError(
+                "Client is not authenticated. Call authenticate() first."
+            )
+        if type not in ["monthly", "daily"]:
+            raise ValueError("type must be either 'monthly' or 'daily'")
+        if datetime.strptime(startDate, "%Y-%m-%d") > datetime.strptime(
+            endDate, "%Y-%m-%d"
+        ):
+            raise ValueError("startDate must be before endDate")
+
+        vehicleId = self.get_vehicleId()
+
+        url = f"{self.base_url}/ipaid/api/v2/vehicles/{vehicleId}/badges?endDate={endDate}&startDate={startDate}&type={type}"
+        response = self.session.get(
+            url,
+            headers={
+                "Accept-Encoding": "gzip",
+                "Accept-Language": "en-US",
+                "Connection": "Keep-Alive",
+                "Platform": "Android",
+                "User-Agent": "okhttp/4.12.0",
+            },
+            cookies=self.session.cookies,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def get_scores(
+        self,
+        endDate: str = datetime.today().strftime("%Y-%m-%d"),
+        startDate: str = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d"),
+    ):
+        if not self.authenticated:
+            raise RuntimeError(
+                "Client is not authenticated. Call authenticate() first."
+            )
+        if datetime.strptime(startDate, "%Y-%m-%d") > datetime.strptime(
+            endDate, "%Y-%m-%d"
+        ):
+            raise ValueError("startDate must be before endDate")
+
+        vehicleId = self.get_vehicleId()
+
+        url = f"{self.base_url}/ipaid/api/v2/vehicles/{vehicleId}/scores?endDate={endDate}&startDate={startDate}"
+        response = self.session.get(
+            url,
+            headers={
+                "Accept-Encoding": "gzip",
+                "Accept-Language": "en-US",
+                "Connection": "Keep-Alive",
+                "Platform": "Android",
+                "User-Agent": "okhttp/4.12.0",
+            },
+            cookies=self.session.cookies,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def get_trip_details(self, tripId: str | None):
+        """Query the trip details endpoint and return the JSON response."""
+        if not self.authenticated:
+            raise RuntimeError(
+                "Client is not authenticated. Call authenticate() first."
+            )
+        if not tripId:
+            tripId = self.get_trips(amount=1)[0]["trip"]["tripId"]
+
+        vehicleId = self.get_vehicleId()
+        url = f"{self.base_url}/ipaid/api/v2/vehicles/{vehicleId}/trips/{tripId}?expand=events&expand=points&expand=scores&expand=user&expand=vehicle&expand=alerts"
+        response = self.session.get(
+            url,
+            headers={
+                "Accept-Encoding": "gzip",
+                "Accept-Language": "en-US",
+                "Connection": "Keep-Alive",
+                "Platform": "Android",
+                "User-Agent": "okhttp/4.12.0",
+            },
+            cookies=self.session.cookies,
+        )
+        response.raise_for_status()
+        return response.json()
