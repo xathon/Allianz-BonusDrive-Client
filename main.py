@@ -5,6 +5,7 @@ from constants import BASE_URL
 from dotenv import load_dotenv
 import os
 from colorama import init
+import photon
 
 from print import print_trip_details, print_badge
 
@@ -20,8 +21,12 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("action",choices=["last-trip","badges-daily","badges-monthly","scores","details","trips"], help="Action to perform")
 parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
+parser.add_argument("--geo-lookup", "-g", action="store_true", help="Enable geolocation lookup using Photon API (for last-trip and trips actions)")
 
 TGT = os.getenv("TGT") # TODO check how long the TGT is valid
+PHOTON_URL = os.getenv("PHOTON_URL")
+if PHOTON_URL:
+    photon_client = photon.PhotonClient(PHOTON_URL)
 
 if not TGT:
     EMAIL = input("Enter your email: ")
@@ -40,11 +45,19 @@ if __name__ == "__main__":
     match args.action:
         case "last-trip":
             trip = client.get_trips(amount=1)[0]
-            print_trip_details(trip["trip"]) if not args.verbose else print(json.dumps(trip, indent=4))
+            if args.geo_lookup:
+                trip = client.get_trip_details(tripId=trip["trip"]["tripId"], photon=photon_client)
+            else:
+                trip = trip["trip"]
+            print_trip_details(trip,photon_client) if not args.verbose else print(json.dumps(trip, indent=4))
         case "trips":
             trips = client.get_trips(amount=8)
             for trip in trips:
-                print_trip_details(trip["trip"]) if not args.verbose else print(json.dumps(trip, indent=4))
+                if args.geo_lookup:
+                    trip = client.get_trip_details(tripId=trip["trip"]["tripId"], photon=photon_client)
+                else:
+                    trip = trip["trip"]
+                print_trip_details(trip,photon_client) if not args.verbose else print(json.dumps(trip, indent=4))
                 print("-" * 20)
         case "badges-daily":
             badges = client.get_badges(type="daily")
@@ -60,7 +73,7 @@ if __name__ == "__main__":
             scores = client.get_scores()
             print(json.dumps(scores , indent=4))
         case "details":
-            trip = client.get_trip_details(tripId=None) # Pass None to get the latest trip, TODO make parameter for tripId
-            print(trip)
+            trip = client.get_trip_details(tripId=None, photon=photon_client) # Pass None to get the latest trip, TODO make parameter for tripId
+            print_trip_details(trip,photon_client) if not args.verbose else print(json.dumps(trip, indent=4))
         case _:
             print("Unknown action")

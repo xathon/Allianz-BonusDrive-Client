@@ -1,7 +1,11 @@
+import json
 import requests
 from urllib.parse import urlencode
 from requests.cookies import RequestsCookieJar
 from datetime import datetime, timedelta
+import polyline
+
+from photon import PhotonClient
 
 # logging.basicConfig(level=print)
 
@@ -199,7 +203,7 @@ class APIClient:
         response.raise_for_status()
         return response.json()
 
-    def get_trip_details(self, tripId: str | None):
+    def get_trip_details(self, tripId: str | None, photon: PhotonClient | None):
         """Query the trip details endpoint and return the JSON response."""
         if not self.authenticated:
             raise RuntimeError(
@@ -222,4 +226,10 @@ class APIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
-        return response.json()
+        resp = response.json()
+        if photon:
+            polyline_points = resp.get("geometry")
+            if polyline_points:
+                decoded_points = polyline.decode(polyline_points, 6)
+                resp["decoded_geometry"] = decoded_points
+        return resp

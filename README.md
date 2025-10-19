@@ -13,6 +13,7 @@ The project is still in development. Currently authentication works, and you can
 - **Badges:** Get your recent badges, either daily or monthly
 - **Scores:** Get more detailed scores per trip (overall and subscores)
 - **Trip details:** All the info you can get about your latest trip, including scores, map geometry, distance, speed, ...
+- **Photon lookup:** Specify the URL to a Photon database in your .env file to get a lookup on your start and end address
 - ... more soonTM, probably
 
 ## Getting Started

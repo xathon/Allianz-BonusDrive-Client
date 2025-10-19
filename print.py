@@ -2,11 +2,20 @@
 
 from colorama import Back
 from datetime import datetime, timedelta
+from photon import PhotonClient
 
-def print_trip_details(trip):
+def print_trip_details(trip, photon=None):
     print(f"Trip ID:             {trip.get('tripId')}")
     print(f"Startzeit:           {datetime.fromtimestamp(trip.get('tripStartTimestampLocal')/1000).strftime('%Y-%m-%d %H:%M:%S')}")
+    if photon and trip.get("decoded_geometry"):
+        start_point_coordinates = trip.get("decoded_geometry")[0]
+        start_point_string = photon.reverse_geocode(start_point_coordinates[0], start_point_coordinates[1])
+        print(f"Startort:            {start_point_string.get('features')[0].get('properties').get('name')}, {start_point_string.get('features')[0].get('properties').get('city')}, {start_point_string.get('features')[0].get('properties').get('country')}")
     print(f"Endzeit:             {datetime.fromtimestamp(trip.get('tripEndTimestampLocal')/1000).strftime('%Y-%m-%d %H:%M:%S')}")
+    if photon and trip.get("decoded_geometry"):
+        end_point_coordinates = trip.get("decoded_geometry")[-1]
+        end_point_string = photon.reverse_geocode(end_point_coordinates[0], end_point_coordinates[1])
+        print(f"Endort:              {end_point_string.get('features')[0].get('properties').get('name')}, {end_point_string.get('features')[0].get('properties').get('city')}, {end_point_string.get('features')[0].get('properties').get('country')}")
     print(f"Distanz (km):        {trip.get('kilometers'):.2f}")
     print(f"Durchschnitt (km/h): {trip.get('avgKilometersPerHour'):.2f}")
     print(f"Fahrzeit:            {str(timedelta(seconds=trip.get('seconds')))}")
