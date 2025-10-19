@@ -1,11 +1,10 @@
-import json
 import requests
 from urllib.parse import urlencode
 from requests.cookies import RequestsCookieJar
 from datetime import datetime, timedelta
 import polyline
 
-from photon import PhotonClient
+from .utils.photon import PhotonClient
 
 # logging.basicConfig(level=print)
 
@@ -42,28 +41,38 @@ class APIClient:
         """Authenticate the user and store session cookies."""
         if not self.tgt:
             # Step 1: Get TGT
-            tgt_response = self.session.post(
-                f"{self.base_url}/cas/rest/v1/rbtickets",
-                data=urlencode({"username": self.username, "password": self.password}),
-                headers=self.headers,
-            )
-            tgt_response.raise_for_status()
-            self.tgt = tgt_response.text.strip()
+            try:
+                tgt_response = self.session.post(
+                    f"{self.base_url}/cas/rest/v1/rbtickets",
+                    data=urlencode({"username": self.username, "password": self.password}),
+                    headers=self.headers,
+                )
+                tgt_response.raise_for_status()
+                if tgt_response.status_code != 200:
+                    raise RuntimeError("Authentication failed")
+                self.tgt = tgt_response.text.strip()
+            except requests.RequestException as e:
+                raise RuntimeError("Authentication failed") from e
 
         # Step 2: Use TGT to get Service Ticket (ST)
-        st_response = self.session.post(
-            f"{self.base_url}/cas/rest/v1/rbtickets/tgt",
-            data=urlencode(
-                {
-                    "ticketGrantingTicketId": self.tgt,
-                    "service": f"{self.base_url}/ipaid/",
-                }
-            ),
-            headers=self.headers,
-            cookies=self.session.cookies,  # Use cookies from the cookiejar
-        )
-        st_response.raise_for_status()
-        service_ticket = st_response.text.strip()
+        try:
+            st_response = self.session.post(
+                f"{self.base_url}/cas/rest/v1/rbtickets/tgt",
+                data=urlencode(
+                    {
+                        "ticketGrantingTicketId": self.tgt,
+                        "service": f"{self.base_url}/ipaid/",
+                    }
+                ),
+                headers=self.headers,
+                cookies=self.session.cookies,  # Use cookies from the cookiejar
+            )
+            st_response.raise_for_status()
+            if st_response.status_code != 200:
+                raise RuntimeError("Failed to obtain Service Ticket")
+            service_ticket = st_response.text.strip()
+        except requests.RequestException as e:
+            raise RuntimeError("Failed to obtain Service Ticket") from e
         self.session.cookies.update(st_response.cookies)
         self.headers.pop("Content-Type", None)
 
@@ -135,6 +144,8 @@ class APIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
+        if not response.json():
+            raise RuntimeError("No vehicles found for the authenticated user.")
         return response.json()[0]["vehicleId"]
 
     def get_badges(

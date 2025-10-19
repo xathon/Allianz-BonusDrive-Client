@@ -17,6 +17,8 @@ The project is still in development. Currently authentication works, and you can
 - ... more soonTM, probably
 
 ## Getting Started
+Use [uv](https://docs.astral.sh/uv/) to install dependencies. Run the script with `uv run main.py [arguments]`. 
+
 On first start, the client should ask you for your BonusDrive email (use the one you tracked the trips with, that's not necessarily the same as the car owner's account!) and password. It then requests a TGT and stores it in .env, it will be used in the future.
 
 ## Disclaimers

@@ -2,7 +2,6 @@
 
 from colorama import Back
 from datetime import datetime, timedelta
-from photon import PhotonClient
 
 def print_trip_details(trip, photon=None):
     print(f"Trip ID:             {trip.get('tripId')}")

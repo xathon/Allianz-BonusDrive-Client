@@ -1,13 +1,13 @@
 import argparse
 import json
-from client import APIClient
-from constants import BASE_URL
 from dotenv import load_dotenv
 import os
 from colorama import init
-import photon
 
-from print import print_trip_details, print_badge
+from .client import APIClient
+from .utils.constants import BASE_URL
+from .utils.photon import PhotonClient
+from .print import print_trip_details, print_badge
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,7 +26,7 @@ parser.add_argument("--geo-lookup", "-g", action="store_true", help="Enable geol
 TGT = os.getenv("TGT") # TODO check how long the TGT is valid
 PHOTON_URL = os.getenv("PHOTON_URL")
 if PHOTON_URL:
-    photon_client = photon.PhotonClient(PHOTON_URL)
+    photon_client = PhotonClient(PHOTON_URL)
 
 if not TGT:
     EMAIL = input("Enter your email: ")
