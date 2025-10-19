@@ -1,5 +1,4 @@
 import requests
-import logging
 from urllib.parse import urlencode
 from requests.cookies import RequestsCookieJar
 from datetime import datetime, timedelta
