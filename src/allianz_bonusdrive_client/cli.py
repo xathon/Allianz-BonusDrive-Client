@@ -8,7 +8,7 @@ from colorama import init
 from .client import BonusdriveAPIClient
 from .utils.constants import BASE_URL
 from .print import print_scores, print_trip_details, print_badge
-
+from importlib.metadata import version
 # Load environment variables from .env file
 load_dotenv()
 
@@ -17,12 +17,13 @@ init(autoreset=True)
 
 parser = argparse.ArgumentParser(
     prog="Allianz BonusDrive Client",
-    description="API Client for Allianz BonusDrive"
+    description=f"API Client for Allianz BonusDrive, version {version('allianz-bonusdrive-client')}",
 )
 parser.add_argument("action",choices=["last-trip","badges-daily","badges-monthly","scores","details","trips"], help="Action to perform")
 #parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose output")
 parser.add_argument("--geo-lookup", "-g", action="store_true", help="Enable geolocation lookup using Photon API (for last-trip and trips actions)")
 parser.add_argument("--raw", "-r", action="store_true", help="Output raw JSON data")
+parser.add_argument('-v', '--version', action='version', version=version('allianz-bonusdrive-client'))
 
 TGT = os.getenv("TGT") # TODO check how long the TGT is valid
 PHOTON_URL = os.getenv("PHOTON_URL")
