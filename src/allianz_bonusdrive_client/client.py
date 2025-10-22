@@ -11,12 +11,13 @@ from .utils.photon import PhotonClient
 
 class BonusdriveAPIClient:
     def __init__(
-        self, base_url: str, email: str | None, password: str | None, tgt: str | None = None
+        self, base_url: str, email: str | None, password: str | None, tgt: str | None = None, photon_url: str | None = None
     ):
         self.base_url = base_url
         self.username = email
         self.password = password
         self.tgt = tgt
+        self.photon = PhotonClient(photon_url) if photon_url else None
         self.session = requests.Session()
         self.session.cookies = (
             RequestsCookieJar()
@@ -195,8 +196,9 @@ class BonusdriveAPIClient:
 
     def get_scores(
         self,
+        raw: bool = False,
         endDate: str = datetime.today().strftime("%Y-%m-%d"),
-        startDate: str = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d"),
+        startDate: str = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
     ):
         if not self.authenticated:
             raise RuntimeError(
@@ -222,9 +224,30 @@ class BonusdriveAPIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
-        return response.json()
+        # TODO this may return 204 if no scores are available in the given date range
+        scores = response.json()
+        if raw:
+            return scores
+        returned_scores = {}
+        for score in scores:
+            overall = score.get("score")
+            speeding = score.get("componentScores").get("over.speeding").get("score")
+            braking = score.get("componentScores").get("harsh.braking").get("score")
+            acceleration = score.get("componentScores").get("harsh.acceleration").get("score")
+            cornering = score.get("componentScores").get("harsh.cornering").get("score")
+            payd = score.get("componentScores").get("payd").get("score")
+            returned_scores[score.get("date")] = {
+                "overall": overall,
+                "speeding": speeding,
+                "braking": braking,
+                "acceleration": acceleration,
+                "cornering": cornering,
+                "payd": payd,
+            }
+            
+        return returned_scores
 
-    def get_trip_details(self, tripId: str | None, photon: PhotonClient | None):
+    def get_trip_details(self, tripId: str | None):
         """Query the trip details endpoint and return the JSON response."""
         if not self.authenticated:
             raise RuntimeError(
@@ -248,9 +271,40 @@ class BonusdriveAPIClient:
         )
         response.raise_for_status()
         resp = response.json()
-        if photon:
+        if self.photon:
             polyline_points = resp.get("geometry")
             if polyline_points:
                 decoded_points = polyline.decode(polyline_points, 6)
                 resp["decoded_geometry"] = decoded_points
+                if decoded_points:
+                    start_point_coordinates = decoded_points[0]
+                    start_name = ""
+                    try:
+                        start_geo = self.photon.reverse_geocode(start_point_coordinates[0], start_point_coordinates[1])
+                    except Exception:
+                        start_geo = None
+                    # in Rust this would have been a single question mark. :(
+                    if isinstance(start_geo, dict):
+                        features = start_geo.get("features") or []
+                        if features and isinstance(features, list) and features[0]:
+                            props = features[0].get("properties") or {}
+                            start_name = props.get("name")
+                            start_city = props.get("city")
+                            start_country = props.get("country")
+                    resp["start_point_string"] = f"{start_name}, {start_city}, {start_country}"
+
+                    end_point_coordinates = decoded_points[-1]
+                    end_name = ""
+                    try:
+                        end_geo = self.photon.reverse_geocode(end_point_coordinates[0], end_point_coordinates[1])
+                    except Exception:
+                        end_geo = None
+                    if isinstance(end_geo, dict):
+                        features = end_geo.get("features") or []
+                        if features and isinstance(features, list) and features[0]:
+                            props = features[0].get("properties") or {}
+                            end_name = props.get("name")
+                            end_city = props.get("city")
+                            end_country = props.get("country")
+                    resp["end_point_string"] = f"{end_name}, {end_city}, {end_country}"
         return resp

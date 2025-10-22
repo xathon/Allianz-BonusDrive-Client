@@ -6,7 +6,6 @@ from colorama import init
 
 from .client import BonusdriveAPIClient
 from .utils.constants import BASE_URL
-from .utils.photon import PhotonClient
 from .print import print_trip_details, print_badge
 
 # Load environment variables from .env file
@@ -25,8 +24,6 @@ parser.add_argument("--geo-lookup", "-g", action="store_true", help="Enable geol
 
 TGT = os.getenv("TGT") # TODO check how long the TGT is valid
 PHOTON_URL = os.getenv("PHOTON_URL")
-if PHOTON_URL:
-    photon_client = PhotonClient(PHOTON_URL)
 
 if not TGT:
     EMAIL = input("Enter your email: ")
@@ -36,7 +33,7 @@ else:
     PASSWORD = ""
 
 if __name__ == "__main__":
-    client = BonusdriveAPIClient(BASE_URL, EMAIL, PASSWORD, TGT)
+    client = BonusdriveAPIClient(BASE_URL, EMAIL, PASSWORD, TGT, PHOTON_URL)
 
     # Authenticate the client
     client.authenticate()
@@ -46,18 +43,18 @@ if __name__ == "__main__":
         case "last-trip":
             trip = client.get_trips(amount=1)[0]
             if args.geo_lookup:
-                trip = client.get_trip_details(tripId=trip["trip"]["tripId"], photon=photon_client)
+                trip = client.get_trip_details(tripId=trip["trip"]["tripId"])
             else:
                 trip = trip["trip"]
-            print_trip_details(trip,photon_client) if not args.verbose else print(json.dumps(trip, indent=4))
+            print_trip_details(trip) if not args.verbose else print(json.dumps(trip, indent=4))
         case "trips":
             trips = client.get_trips(amount=8)
             for trip in trips:
                 if args.geo_lookup:
-                    trip = client.get_trip_details(tripId=trip["trip"]["tripId"], photon=photon_client)
+                    trip = client.get_trip_details(tripId=trip["trip"]["tripId"])
                 else:
                     trip = trip["trip"]
-                print_trip_details(trip,photon_client) if not args.verbose else print(json.dumps(trip, indent=4))
+                print_trip_details(trip) if not args.verbose else print(json.dumps(trip, indent=4))
                 print("-" * 20)
         case "badges-daily":
             badges = client.get_badges(type="daily")
@@ -70,10 +67,10 @@ if __name__ == "__main__":
                 print_badge(badge) if not args.verbose else print(json.dumps(badges, indent=4))
                 print("-" * 20)
         case "scores": # this is probably not useful since the scores are already included in trips, but hey, the API endpoint exists, so why not
-            scores = client.get_scores()
+            scores = client.get_scores(raw=True)
             print(json.dumps(scores , indent=4))
         case "details":
-            trip = client.get_trip_details(tripId=None, photon=photon_client) # Pass None to get the latest trip, TODO make parameter for tripId
-            print_trip_details(trip,photon_client) if not args.verbose else print(json.dumps(trip, indent=4))
+            trip = client.get_trip_details(tripId=None) # Pass None to get the latest trip, TODO make parameter for tripId
+            print_trip_details(trip) if not args.verbose else print(json.dumps(trip, indent=4))
         case _:
             print("Unknown action")

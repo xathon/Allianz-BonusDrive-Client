@@ -4,7 +4,7 @@ API Client to query your BonusDrive data.
 
 BonusDrive is a vehicle telematics application used by Allianz Germany to track driving behavior and routes. The code probably works similarily for every customer of IMS Driving Change (such as ADAC, Zurich, Aviva, etc., ), but you'll have to find that out for yourself.
 
-The project is still in development. Currently authentication works, and you can query some data about your latest trip, but it just dumps some JSON onto your CLI.
+The project is still in development.
 
 ## Features
 
@@ -13,11 +13,44 @@ The project is still in development. Currently authentication works, and you can
 - **Badges:** Get your recent badges, either daily or monthly
 - **Scores:** Get more detailed scores per trip (overall and subscores)
 - **Trip details:** All the info you can get about your latest trip, including scores, map geometry, distance, speed, ...
-- **Photon lookup:** Specify the URL to a Photon database in your .env file to get a lookup on your start and end address
+- **Photon lookup:** Specify the URL to a Photon database to get a lookup on your start and end address
 - ... more soonTM, probably
 
 ## Getting Started
-Use [uv](https://docs.astral.sh/uv/) to install dependencies. Run the script with `uv run main.py [arguments]`. 
+You can use this either as a stand-alone cli client or as a library for use in other programs.
+
+### Library
+Either get the latest from git:
+```
+pip install git+https://github.com/xathon/Allianz-Bonusdrive-Client.git
+```
+Or use PyPI:
+```
+pip install allianz-bonusdrive-client
+```
+
+As a library, you can just do:
+```python
+from allianz_bonusdrive_client import BonusdriveAPIClient
+base_url = "https://example.com"  # Replace with the actual base URL
+email = "user@example.com"        # Replace with the user's email
+password = "securepassword"       # Replace with the user's password
+tgt = None                        # Optional: Provide a TGT if available
+
+# Create an instance of the client
+client = BonusdriveAPIClient(base_url, email, password, tgt)
+
+# Authenticate the client
+client.authenticate()
+
+# do whatever you want
+```
+
+### CLI
+From PyPI:
+```
+pip install allianz-bonusdrive-client[cli]
+```
 
 On first start, the client should ask you for your BonusDrive email (use the one you tracked the trips with, that's not necessarily the same as the car owner's account!) and password. It then requests a TGT and stores it in .env, it will be used in the future.
 
