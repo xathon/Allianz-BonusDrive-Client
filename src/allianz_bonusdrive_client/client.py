@@ -36,37 +36,28 @@ class BonusdriveAPIClient:
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 13; Pixel 5 Build/TQ3A.230901.001)",
             "X-Requested-With": "XMLHttpRequest",
         }
+    
+    def request_tgt(self):
+        """Request a new TGT using the provided username and password."""
+        if not self.username or not self.password:
+            raise ValueError("Please provide your username and password to request a TGT")
+        try:
+            tgt_response = self.session.post(
+                f"{self.base_url}/cas/rest/v1/rbtickets",
+                data=urlencode({"username": self.username, "password": self.password, "rememberMe": "true",}),
+                headers=self.headers,
+            )
+            tgt_response.raise_for_status()
+            if tgt_response.status_code != 200:
+                raise RuntimeError("Failed to obtain TGT")
+            self.tgt = tgt_response.text.strip()
+        except requests.RequestException as e:
+            raise RuntimeError("Failed to obtain TGT") from e
 
     def authenticate(self):
         """Authenticate the user and store session cookies."""
         if not self.tgt:
-            # Step 1: Get TGT
-            if not self.username or not self.password:
-                raise ValueError("Username and password must be provided for authentication")
-            try:
-                tgt_response = self.session.post(
-                    f"{self.base_url}/cas/rest/v1/rbtickets",
-                    data=urlencode({"username": self.username, "password": self.password, "rememberMe": "true",}),
-                    headers=self.headers,
-                )
-                tgt_response.raise_for_status()
-                if tgt_response.status_code != 200:
-                    raise RuntimeError("Authentication failed")
-                self.tgt = tgt_response.text.strip()
-
-                # Write the TGT to the .env file
-                with open(".env", "r") as env_file:
-                    lines = env_file.readlines()
-
-                with open(".env", "w") as env_file:
-                    for line in lines:
-                        if line.startswith("TGT="):
-                            env_file.write(f"TGT=\"{self.tgt}\"\n")
-                        else:
-                            env_file.write(line)
-
-            except requests.RequestException as e:
-                raise RuntimeError("Authentication failed") from e
+           self.request_tgt()
 
         # Step 2: Use TGT to get Service Ticket (ST)
         try:
@@ -83,15 +74,6 @@ class BonusdriveAPIClient:
             )
             if st_response.status_code == 404:
                 # TGT is invalid, re-authenticate and retry
-                with open(".env", "r") as env_file:
-                    lines = env_file.readlines()
-
-                with open(".env", "w") as env_file:
-                    for line in lines:
-                        if line.startswith("TGT="):
-                            env_file.write("TGT=\"\"\n")
-                        else:
-                            env_file.write(line)
                 self.tgt = None
                 self.authenticate()
                 return
