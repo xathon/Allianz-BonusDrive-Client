@@ -46,7 +46,7 @@ class BonusdriveAPIClient:
             try:
                 tgt_response = self.session.post(
                     f"{self.base_url}/cas/rest/v1/rbtickets",
-                    data=urlencode({"username": self.username, "password": self.password}),
+                    data=urlencode({"username": self.username, "password": self.password, "rememberMe": "true",}),
                     headers=self.headers,
                 )
                 tgt_response.raise_for_status()
