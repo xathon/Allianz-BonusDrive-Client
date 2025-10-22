@@ -9,12 +9,16 @@ source = { editable = "." }
 dependencies = [
     { name = "certifi" },
     { name = "charset-normalizer" },
-    { name = "colorama" },
     { name = "idna" },
     { name = "polyline" },
-    { name = "python-dotenv" },
     { name = "requests" },
     { name = "urllib3" },
+]
+
+[package.optional-dependencies]
+cli = [
+    { name = "colorama" },
+    { name = "python-dotenv" },
 ]
 
 [package.dev-dependencies]
@@ -26,13 +30,14 @@ dev = [
 requires-dist = [
     { name = "certifi", specifier = "==2025.10.5" },
     { name = "charset-normalizer", specifier = "==3.4.3" },
-    { name = "colorama", specifier = "==0.4.6" },
+    { name = "colorama", marker = "extra == 'cli'", specifier = "==0.4.6" },
     { name = "idna", specifier = "==3.10" },
     { name = "polyline", specifier = "==2.0.3" },
-    { name = "python-dotenv", specifier = "==1.1.1" },
+    { name = "python-dotenv", marker = "extra == 'cli'", specifier = "==1.1.1" },
     { name = "requests", specifier = "==2.32.5" },
     { name = "urllib3", specifier = "==2.5.0" },
 ]
+provides-extras = ["cli"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.4.2" }]

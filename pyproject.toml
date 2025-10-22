@@ -7,12 +7,16 @@ requires-python = ">=3.13"
 dependencies = [
     "certifi==2025.10.5",
     "charset-normalizer==3.4.3",
-    "colorama==0.4.6",
     "idna==3.10",
     "polyline==2.0.3",
-    "python-dotenv==1.1.1",
     "requests==2.32.5",
     "urllib3==2.5.0",
+]
+
+[project.optional-dependencies]
+cli = [
+    "colorama==0.4.6",
+    "python-dotenv==1.1.1",
 ]
 
 [dependency-groups]
