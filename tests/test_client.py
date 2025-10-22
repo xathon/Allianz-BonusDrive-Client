@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch
-from allianz_bonusdrive_client.client import APIClient
+from allianz_bonusdrive_client.client import BonusdriveAPIClient
 
 
 @pytest.fixture
@@ -10,7 +10,7 @@ def mock_session():
 
 @pytest.fixture
 def api_client(mock_session):
-    return APIClient(
+    return BonusdriveAPIClient(
         base_url="https://example.com",
         email="test@example.com",
         password="password123",

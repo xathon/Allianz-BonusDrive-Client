@@ -9,7 +9,7 @@ from .utils.photon import PhotonClient
 # logging.basicConfig(level=print)
 
 
-class APIClient:
+class BonusdriveAPIClient:
     def __init__(
         self, base_url: str, email: str, password: str, tgt: str | None = None
     ):

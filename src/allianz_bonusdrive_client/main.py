@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import os
 from colorama import init
 
-from .client import APIClient
+from .client import BonusdriveAPIClient
 from .utils.constants import BASE_URL
 from .utils.photon import PhotonClient
 from .print import print_trip_details, print_badge
@@ -36,7 +36,7 @@ else:
     PASSWORD = ""
 
 if __name__ == "__main__":
-    client = APIClient(BASE_URL, EMAIL, PASSWORD, TGT)
+    client = BonusdriveAPIClient(BASE_URL, EMAIL, PASSWORD, TGT)
 
     # Authenticate the client
     client.authenticate()
