@@ -11,7 +11,7 @@ from .utils.photon import PhotonClient
 
 class BonusdriveAPIClient:
     def __init__(
-        self, base_url: str, email: str, password: str, tgt: str | None = None
+        self, base_url: str, email: str | None, password: str | None, tgt: str | None = None
     ):
         self.base_url = base_url
         self.username = email
@@ -41,6 +41,8 @@ class BonusdriveAPIClient:
         """Authenticate the user and store session cookies."""
         if not self.tgt:
             # Step 1: Get TGT
+            if not self.username or not self.password:
+                raise ValueError("Username and password must be provided for authentication")
             try:
                 tgt_response = self.session.post(
                     f"{self.base_url}/cas/rest/v1/rbtickets",
@@ -51,6 +53,18 @@ class BonusdriveAPIClient:
                 if tgt_response.status_code != 200:
                     raise RuntimeError("Authentication failed")
                 self.tgt = tgt_response.text.strip()
+
+                # Write the TGT to the .env file
+                with open(".env", "r") as env_file:
+                    lines = env_file.readlines()
+
+                with open(".env", "w") as env_file:
+                    for line in lines:
+                        if line.startswith("TGT="):
+                            env_file.write(f"TGT=\"{self.tgt}\"\n")
+                        else:
+                            env_file.write(line)
+
             except requests.RequestException as e:
                 raise RuntimeError("Authentication failed") from e
 
@@ -67,6 +81,20 @@ class BonusdriveAPIClient:
                 headers=self.headers,
                 cookies=self.session.cookies,  # Use cookies from the cookiejar
             )
+            if st_response.status_code == 404:
+                # TGT is invalid, re-authenticate and retry
+                with open(".env", "r") as env_file:
+                    lines = env_file.readlines()
+
+                with open(".env", "w") as env_file:
+                    for line in lines:
+                        if line.startswith("TGT="):
+                            env_file.write("TGT=\"\"\n")
+                        else:
+                            env_file.write(line)
+                self.tgt = None
+                self.authenticate()
+                return
             st_response.raise_for_status()
             if st_response.status_code != 200:
                 raise RuntimeError("Failed to obtain Service Ticket")
