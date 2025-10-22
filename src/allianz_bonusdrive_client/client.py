@@ -5,13 +5,27 @@ from datetime import datetime, timedelta
 import polyline
 
 from .utils.photon import PhotonClient
+from .utils.dataclasses import (
+    Trip,
+    Vehicle,
+    User,
+    TripScores,
+    Scores,
+    Badge,
+    BadgeLevel,
+)
 
 # logging.basicConfig(level=print)
 
 
 class BonusdriveAPIClient:
     def __init__(
-        self, base_url: str, email: str | None, password: str | None, tgt: str | None = None, photon_url: str | None = None
+        self,
+        base_url: str,
+        email: str | None,
+        password: str | None,
+        tgt: str | None = None,
+        photon_url: str | None = None,
     ):
         self.base_url = base_url
         self.username = email
@@ -37,15 +51,23 @@ class BonusdriveAPIClient:
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 13; Pixel 5 Build/TQ3A.230901.001)",
             "X-Requested-With": "XMLHttpRequest",
         }
-    
+
     def request_tgt(self):
         """Request a new TGT using the provided username and password."""
         if not self.username or not self.password:
-            raise ValueError("Please provide your username and password to request a TGT")
+            raise ValueError(
+                "Please provide your username and password to request a TGT"
+            )
         try:
             tgt_response = self.session.post(
                 f"{self.base_url}/cas/rest/v1/rbtickets",
-                data=urlencode({"username": self.username, "password": self.password, "rememberMe": "true",}),
+                data=urlencode(
+                    {
+                        "username": self.username,
+                        "password": self.password,
+                        "rememberMe": "true",
+                    }
+                ),
                 headers=self.headers,
             )
             tgt_response.raise_for_status()
@@ -58,7 +80,7 @@ class BonusdriveAPIClient:
     def authenticate(self):
         """Authenticate the user and store session cookies."""
         if not self.tgt:
-           self.request_tgt()
+            self.request_tgt()
 
         # Step 2: Use TGT to get Service Ticket (ST)
         try:
@@ -111,14 +133,14 @@ class BonusdriveAPIClient:
         self.session.cookies.update(cookies_response.cookies)
         self.authenticated = True
 
-    def get_trips(self, amount: int = 10, offset: int = 0):
-        """Query the trips endpoint and return the JSON response."""
+    def get_trips_raw(self, amount: int = 10, offset: int = 0) -> list[dict]:
+        """Query the trips endpoint and return the raw JSON response."""
         if not self.authenticated:
             raise RuntimeError(
                 "Client is not authenticated. Call authenticate() first."
             )
 
-        url = f"{self.base_url}/ipaid/api/v2/users/{self.userId}/logbook/trips?offset={offset}&limit={amount}&sort=local_startdate%3Bdesc&expand=vehicle&expand=user"
+        url = f"{self.base_url}/ipaid/api/v2/users/{self.userId}/logbook/trips?offset={offset}&limit={amount}&sort=local_startdate%3Bdesc&expand=vehicle&expand=user&expand=events&expand=points&expand=scores&expand=alerts"
         response = self.session.get(
             url,
             headers={
@@ -131,9 +153,113 @@ class BonusdriveAPIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
-        return response.json()["items"]
+        trips_data = response.json()["items"]
+        return trips_data
 
-    def get_vehicleId(self):
+    def get_trips(self, amount: int = 10, offset: int = 0) -> list[Trip]:
+        trips_data = [item["trip"] for item in self.get_trips_raw(amount, offset)]
+
+        trips = []
+        for trip_data in trips_data:
+            vehicle_data = trip_data["vehicle"]
+            user_data = trip_data["user"]
+            trip_scores_data = trip_data["tripScores"]
+
+            vehicle = Vehicle(
+                vehicleId=vehicle_data["vehicleId"],
+                make=vehicle_data["make"],
+                model=vehicle_data["model"],
+                nickname=vehicle_data.get("nickname"),
+                year=vehicle_data.get("year"),
+                plate=vehicle_data.get("plate"),
+                avatar=vehicle_data.get("avatar"),
+                accountId=vehicle_data.get("accountId"),
+                accountNumber=vehicle_data.get("accountNumber"),
+                policyInceptionDate=vehicle_data.get("policyInceptionDate"),
+                policyStartDate=vehicle_data.get("policyStartDate"),
+                extraAccountId=vehicle_data.get("extraAccountId"),
+                extraAccountNumber=vehicle_data.get("extraAccountNumber"),
+            )
+
+            user = User(
+                userId=user_data["userId"],
+                publicDisplayName=user_data["publicDisplayName"],
+                avatar=user_data.get("avatar"),
+                sharedInformation=user_data.get("sharedInformation"),
+                associatedUsers=user_data.get("associatedUsers"),
+                account=user_data.get("account"),
+                userRole=user_data.get("userRole"),
+                accountRole=user_data.get("accountRole"),
+                firstName=user_data["firstName"],
+                lastName=user_data["lastName"],
+            )
+
+            scores_data = trip_scores_data["scores"]
+            scores = Scores(
+                over_speeding=scores_data["over.speeding"],
+                speeding=scores_data["speeding"],
+                distracted_driving=scores_data["distracted.driving"],
+                payd=scores_data["payd"],
+                overall=scores_data["overall"],
+                harsh_cornering=scores_data["harsh.cornering"],
+                harsh_acceleration=scores_data["harsh.acceleration"],
+                harsh_braking=scores_data["harsh.braking"],
+                mileage=scores_data["mileage"],
+            )
+
+            trip_scores = TripScores(
+                scores=scores,
+                scoreType=trip_scores_data["scoreType"],
+            )
+
+            trip = Trip(
+                events=trip_data.get("events"),
+                tripId=trip_data["tripId"],
+                tripStartTimestampUtc=trip_data["tripStartTimestampUtc"],
+                tripEndTimestampUtc=trip_data["tripEndTimestampUtc"],
+                tripStartTimestampLocal=trip_data["tripStartTimestampLocal"],
+                tripEndTimestampLocal=trip_data["tripEndTimestampLocal"],
+                tripProcessingEndTimestampUtc=trip_data[
+                    "tripProcessingEndTimestampUtc"
+                ],
+                kilometers=trip_data["kilometers"],
+                avgKilometersPerHour=trip_data["avgKilometersPerHour"],
+                maxKilometersPerHour=trip_data["maxKilometersPerHour"],
+                seconds=trip_data["seconds"],
+                secondsOfIdling=trip_data["secondsOfIdling"],
+                timeZoneOffsetMillis=trip_data["timeZoneOffsetMillis"],
+                tripStatus=trip_data["tripStatus"],
+                pois=trip_data.get("pois"),
+                transportMode=trip_data["transportMode"],
+                transportModeMessageKey=trip_data["transportModeMessageKey"],
+                transportModeReason=trip_data.get("transportModeReason"),
+                geometry=trip_data["geometry"],
+                snappedGeometry=trip_data.get("snappedGeometry", []),
+                reconstructedStartGeometry=trip_data["reconstructedStartGeometry"],
+                tripStartStatus=trip_data["tripStartStatus"],
+                verified=trip_data["verified"],
+                hasAlerts=trip_data["hasAlerts"],
+                alerts=trip_data.get("alerts"),
+                vehicle=vehicle,
+                user=user,
+                device=trip_data.get("device"),
+                tripScores=trip_scores,
+                milStatus=trip_data.get("milStatus"),
+                dtcCount=trip_data.get("dtcCount"),
+                tripScore=trip_data["tripScore"],
+                eventsCount=trip_data["eventsCount"],
+                private=trip_data["private"],
+                tripUUID=trip_data["tripUUID"],
+                purpose=trip_data["purpose"],
+                decoded_geometry=None,
+                start_point_string=None,
+                end_point_string=None,
+            )
+            trips.append(trip)
+
+        return trips
+
+    def get_vehicleId(self) -> str:
         """Query the vehicles endpoint and return the Id of the first vehicle."""
         # If you have multiple vehicles, you need to adjust this method
         # or buy me a second car, so I'll need it myself
@@ -159,13 +285,14 @@ class BonusdriveAPIClient:
             raise RuntimeError("No vehicles found for the authenticated user.")
         return response.json()[0]["vehicleId"]
 
-    def get_badges(
+
+    def get_badges_raw(
         self,
         type: str = "daily",
         endDate: str = datetime.today().strftime("%Y-%m-%d"),
         startDate: str = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
-    ):
-        """Query the badges endpoint and return the JSON response."""
+    ) -> list[dict]:
+        """Query the badges endpoint and return the raw JSON response."""
         if not self.authenticated:
             raise RuntimeError(
                 "Client is not authenticated. Call authenticate() first."
@@ -192,14 +319,49 @@ class BonusdriveAPIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
-        return response.json()
+        badges_data = response.json()
+        return badges_data
 
-    def get_scores(
+    def get_badges(
         self,
-        raw: bool = False,
+        type: str = "daily",
         endDate: str = datetime.today().strftime("%Y-%m-%d"),
         startDate: str = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
-    ):
+    ) -> list[Badge]:
+        """Query the badges endpoint and return a list of Badge dataclass instances."""
+        
+        badges_data = self.get_badges_raw(type, endDate, startDate)
+
+        badges = []
+        for badge_data in badges_data:
+            used_badge_levels_data = badge_data.get("usedBadgeLevels", [])
+            used_badge_levels = [
+                BadgeLevel(
+                    level=level_data["level"],
+                    minimumValue=level_data["minimumValue"],
+                    maximumValue=level_data["maximumValue"],
+                )
+                for level_data in used_badge_levels_data
+            ]
+
+            badge = Badge(
+                badgeType=badge_data["badgeType"],
+                level=badge_data["level"],
+                pointsAwarded=badge_data["pointsAwarded"],
+                date=badge_data["date"],
+                state=badge_data["state"],
+                usedBadgeLevels=used_badge_levels,
+            )
+            badges.append(badge)
+
+        return badges
+
+    def get_scores_raw(
+        self,
+        endDate: str = datetime.today().strftime("%Y-%m-%d"),
+        startDate: str = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
+    ) -> list[dict]:
+        """Query the scores endpoint and return the raw JSON response."""
         if not self.authenticated:
             raise RuntimeError(
                 "Client is not authenticated. Call authenticate() first."
@@ -225,36 +387,52 @@ class BonusdriveAPIClient:
         )
         response.raise_for_status()
         # TODO this may return 204 if no scores are available in the given date range
-        scores = response.json()
-        if raw:
+        scores = response.json() if response.status_code != 204 else []
+        return scores
+
+    def get_scores(
+        self,
+        endDate: str = datetime.today().strftime("%Y-%m-%d"),
+        startDate: str = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d"),
+    ) -> dict[(str, Scores)] | dict | list:
+        
+        scores = self.get_scores_raw(endDate, startDate)
+        if scores == []:
             return scores
         returned_scores = {}
         for score in scores:
-            overall = score.get("score")
-            speeding = score.get("componentScores").get("over.speeding").get("score")
-            braking = score.get("componentScores").get("harsh.braking").get("score")
-            acceleration = score.get("componentScores").get("harsh.acceleration").get("score")
-            cornering = score.get("componentScores").get("harsh.cornering").get("score")
-            payd = score.get("componentScores").get("payd").get("score")
-            returned_scores[score.get("date")] = {
-                "overall": overall,
-                "speeding": speeding,
-                "braking": braking,
-                "acceleration": acceleration,
-                "cornering": cornering,
-                "payd": payd,
-            }
-            
+
+            returned_scores[score.get("date")] = Scores(
+                overall=score.get("score", 0.0),
+                over_speeding=score.get("componentScores")
+                .get("over.speeding") # pyright: ignore[reportOptionalMemberAccess]
+                .get("score", 0.0),
+                harsh_braking=score.get("componentScores")
+                .get("harsh.braking") # pyright: ignore[reportOptionalMemberAccess]
+                .get("score", 0.0),
+                harsh_acceleration=score.get("componentScores")
+                .get("harsh.acceleration") # pyright: ignore[reportOptionalMemberAccess]
+                .get("score", 0.0),
+                harsh_cornering=score.get("componentScores")
+                .get("harsh.cornering") # pyright: ignore[reportOptionalMemberAccess]
+                .get("score", 0.0),
+                payd=score.get("componentScores").get("payd").get("score", 0.0), # pyright: ignore[reportOptionalMemberAccess]
+                speeding=score.get("componentScores").get("speeding").get("score", 0.0), # pyright: ignore[reportOptionalMemberAccess]
+                distracted_driving=score.get("componentScores")
+                .get("distracted.driving") # pyright: ignore[reportOptionalMemberAccess]
+                .get("score", 0.0),
+                mileage=score.get("componentScores").get("mileage").get("score", 0.0), # pyright: ignore[reportOptionalMemberAccess]
+            )
         return returned_scores
 
-    def get_trip_details(self, tripId: str | None):
+    def get_trip_details(self, tripId: str | None) -> Trip:
         """Query the trip details endpoint and return the JSON response."""
         if not self.authenticated:
             raise RuntimeError(
                 "Client is not authenticated. Call authenticate() first."
             )
         if not tripId:
-            tripId = self.get_trips(amount=1)[0]["trip"]["tripId"]
+            tripId = self.get_trips(amount=1)[0].tripId
 
         vehicleId = self.get_vehicleId()
         url = f"{self.base_url}/ipaid/api/v2/vehicles/{vehicleId}/trips/{tripId}?expand=events&expand=points&expand=scores&expand=user&expand=vehicle&expand=alerts"
@@ -270,17 +448,21 @@ class BonusdriveAPIClient:
             cookies=self.session.cookies,
         )
         response.raise_for_status()
-        resp = response.json()
+        if response.status_code != 200:
+            raise RuntimeError("Failed to obtain trip details")
+        trip_data = response.json()
         if self.photon:
-            polyline_points = resp.get("geometry")
+            polyline_points = trip_data.get("geometry")
             if polyline_points:
                 decoded_points = polyline.decode(polyline_points, 6)
-                resp["decoded_geometry"] = decoded_points
+                trip_data["decoded_geometry"] = decoded_points
                 if decoded_points:
                     start_point_coordinates = decoded_points[0]
                     start_name = ""
                     try:
-                        start_geo = self.photon.reverse_geocode(start_point_coordinates[0], start_point_coordinates[1])
+                        start_geo = self.photon.reverse_geocode(
+                            start_point_coordinates[0], start_point_coordinates[1]
+                        )
                     except Exception:
                         start_geo = None
                     # in Rust this would have been a single question mark. :(
@@ -291,12 +473,16 @@ class BonusdriveAPIClient:
                             start_name = props.get("name")
                             start_city = props.get("city")
                             start_country = props.get("country")
-                    resp["start_point_string"] = f"{start_name}, {start_city}, {start_country}"
+                    trip_data["start_point_string"] = (
+                        f"{start_name}, {start_city}, {start_country}"
+                    )
 
                     end_point_coordinates = decoded_points[-1]
                     end_name = ""
                     try:
-                        end_geo = self.photon.reverse_geocode(end_point_coordinates[0], end_point_coordinates[1])
+                        end_geo = self.photon.reverse_geocode(
+                            end_point_coordinates[0], end_point_coordinates[1]
+                        )
                     except Exception:
                         end_geo = None
                     if isinstance(end_geo, dict):
@@ -306,5 +492,100 @@ class BonusdriveAPIClient:
                             end_name = props.get("name")
                             end_city = props.get("city")
                             end_country = props.get("country")
-                    resp["end_point_string"] = f"{end_name}, {end_city}, {end_country}"
-        return resp
+                    trip_data["end_point_string"] = (
+                        f"{end_name}, {end_city}, {end_country}"
+                    )
+
+        vehicle_data = trip_data["vehicle"]
+        user_data = trip_data["user"]
+        trip_scores_data = trip_data["tripScores"]
+
+        vehicle = Vehicle(
+            vehicleId=vehicle_data["vehicleId"],
+            make=vehicle_data["make"],
+            model=vehicle_data["model"],
+            nickname=vehicle_data.get("nickname"),
+            year=vehicle_data.get("year"),
+            plate=vehicle_data.get("plate"),
+            avatar=vehicle_data.get("avatar"),
+            accountId=vehicle_data.get("accountId"),
+            accountNumber=vehicle_data.get("accountNumber"),
+            policyInceptionDate=vehicle_data.get("policyInceptionDate"),
+            policyStartDate=vehicle_data.get("policyStartDate"),
+            extraAccountId=vehicle_data.get("extraAccountId"),
+            extraAccountNumber=vehicle_data.get("extraAccountNumber"),
+        )
+
+        user = User(
+            userId=user_data["userId"],
+            publicDisplayName=user_data["publicDisplayName"],
+            avatar=user_data.get("avatar"),
+            sharedInformation=user_data.get("sharedInformation"),
+            associatedUsers=user_data.get("associatedUsers"),
+            account=user_data.get("account"),
+            userRole=user_data.get("userRole"),
+            accountRole=user_data.get("accountRole"),
+            firstName=user_data["firstName"],
+            lastName=user_data["lastName"],
+        )
+
+        scores_data = trip_scores_data["scores"]
+        scores = Scores(
+            over_speeding=scores_data["over.speeding"],
+            speeding=scores_data["speeding"],
+            distracted_driving=scores_data["distracted.driving"],
+            payd=scores_data["payd"],
+            overall=scores_data["overall"],
+            harsh_cornering=scores_data["harsh.cornering"],
+            harsh_acceleration=scores_data["harsh.acceleration"],
+            harsh_braking=scores_data["harsh.braking"],
+            mileage=scores_data["mileage"],
+        )
+
+        trip_scores = TripScores(
+            scores=scores,
+            scoreType=trip_scores_data["scoreType"],
+        )
+
+        trip = Trip(
+            events=trip_data.get("events"),
+            tripId=trip_data["tripId"],
+            tripStartTimestampUtc=trip_data["tripStartTimestampUtc"],
+            tripEndTimestampUtc=trip_data["tripEndTimestampUtc"],
+            tripStartTimestampLocal=trip_data["tripStartTimestampLocal"],
+            tripEndTimestampLocal=trip_data["tripEndTimestampLocal"],
+            tripProcessingEndTimestampUtc=trip_data["tripProcessingEndTimestampUtc"],
+            kilometers=trip_data["kilometers"],
+            avgKilometersPerHour=trip_data["avgKilometersPerHour"],
+            maxKilometersPerHour=trip_data["maxKilometersPerHour"],
+            seconds=trip_data["seconds"],
+            secondsOfIdling=trip_data["secondsOfIdling"],
+            timeZoneOffsetMillis=trip_data["timeZoneOffsetMillis"],
+            tripStatus=trip_data["tripStatus"],
+            pois=trip_data.get("pois"),
+            transportMode=trip_data["transportMode"],
+            transportModeMessageKey=trip_data["transportModeMessageKey"],
+            transportModeReason=trip_data.get("transportModeReason"),
+            geometry=trip_data["geometry"],
+            snappedGeometry=trip_data.get("snappedGeometry", []),
+            reconstructedStartGeometry=trip_data["reconstructedStartGeometry"],
+            tripStartStatus=trip_data["tripStartStatus"],
+            verified=trip_data["verified"],
+            hasAlerts=trip_data["hasAlerts"],
+            alerts=trip_data.get("alerts"),
+            vehicle=vehicle,
+            user=user,
+            device=trip_data.get("device"),
+            tripScores=trip_scores,
+            milStatus=trip_data.get("milStatus"),
+            dtcCount=trip_data.get("dtcCount"),
+            tripScore=trip_data["tripScore"],
+            eventsCount=trip_data["eventsCount"],
+            private=trip_data["private"],
+            tripUUID=trip_data["tripUUID"],
+            purpose=trip_data["purpose"],
+            decoded_geometry=None,
+            start_point_string=None,
+            end_point_string=None,
+        )
+        return trip

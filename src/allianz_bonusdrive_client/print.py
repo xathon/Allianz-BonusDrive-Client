@@ -3,45 +3,37 @@
 from colorama import Back
 from datetime import datetime, timedelta
 
-def print_trip_details(trip):
-    print(f"Trip ID:             {trip.get('tripId')}")
-    print(f"Startzeit:           {datetime.fromtimestamp(trip.get('tripStartTimestampLocal')/1000).strftime('%Y-%m-%d %H:%M:%S')}")
-    if trip.get("start_point_string"):
-        print(f"Startort:            {trip.get("start_point_string")}")
-    print(f"Endzeit:             {datetime.fromtimestamp(trip.get('tripEndTimestampLocal')/1000).strftime('%Y-%m-%d %H:%M:%S')}")
-    if trip.get("end_point_string"):
-        print(f"Endort:              {trip.get("end_point_string")}")    
-    print(f"Distanz (km):        {trip.get('kilometers'):.2f}")
-    print(f"Durchschnitt (km/h): {trip.get('avgKilometersPerHour'):.2f}")
-    print(f"Fahrzeit:            {str(timedelta(seconds=trip.get('seconds')))}")
-    print(f"Standzeit:           {str(timedelta(seconds=trip.get('secondsOfIdling')))}")
+from allianz_bonusdrive_client.utils.dataclasses import Trip, Scores, Badge
+
+def print_trip_details(trip: Trip):
+    print(f"Trip ID:             {trip.tripId}")
+    print(f"Startzeit:           {datetime.fromtimestamp(trip.tripStartTimestampLocal / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+    if trip.start_point_string:
+        print(f"Startort:            {trip.start_point_string}")
+    print(f"Endzeit:             {datetime.fromtimestamp(trip.tripEndTimestampLocal / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
+    if trip.end_point_string:
+        print(f"Endort:              {trip.end_point_string}")
+    print(f"Distanz (km):        {trip.kilometers:.2f}")
+    print(f"Durchschnitt (km/h): {trip.avgKilometersPerHour:.2f}")
+    print(f"Fahrzeit:            {str(timedelta(seconds=trip.seconds))}")
+    print(f"Standzeit:           {str(timedelta(seconds=trip.secondsOfIdling))}")
     print("Scores:")
-    print_scores(trip)
+    print_scores(trip.tripScores.scores)
 
+def print_scores(scores: Scores):
+    print(f"Gesamtscore:           {score_color(scores.overall)}{scores.overall}{Back.RESET}")
+    print(f"Bremsverhalten:        {score_color(scores.harsh_braking)}{scores.harsh_braking}{Back.RESET}")
+    print(f"Beschleunigung:        {score_color(scores.harsh_acceleration)}{scores.harsh_acceleration}{Back.RESET}")
+    print(f"Kurvenfahrverhalten:   {score_color(scores.harsh_cornering)}{scores.harsh_cornering}{Back.RESET}")
+    print(f"Geschwindigkeit:       {score_color(scores.speeding)}{scores.speeding}{Back.RESET}")
+    print(f"Tag, Zeit, Straßenart: {score_color(scores.payd)}{scores.payd}{Back.RESET}")
 
-
-def print_scores(scores):
-    overall = scores.get("tripScores").get("scores").get("overall") if scores.get("tripScores") else scores.get("scores").get("overall")
-    speeding = scores.get("tripScores").get("scores").get("speeding") if scores.get("tripScores") else scores.get("scores").get("speeding")
-    braking = scores.get("tripScores").get("scores").get("harsh.braking") if scores.get("tripScores") else scores.get("scores").get("harsh.braking")
-    acceleration = scores.get("tripScores").get("scores").get("harsh.acceleration") if scores.get("tripScores") else scores.get("scores").get("harsh.acceleration")
-    cornering = scores.get("tripScores").get("scores").get("harsh.cornering") if scores.get("tripScores") else scores.get("scores").get("harsh.cornering")
-    payd = scores.get("tripScores").get("scores").get("payd") if scores.get("tripScores") else scores.get("scores").get("payd")
-
-    print(f"Gesamtscore:           {score_color(overall)}{overall}{Back.RESET}")
-    print(f"Bremsverhalten:        {score_color(braking)}{braking}{Back.RESET}")
-    print(f"Beschleunigung:        {score_color(acceleration)}{acceleration}{Back.RESET}")
-    print(f"Kurvenfahrverhalten:   {score_color(cornering)}{cornering}{Back.RESET}")
-    print(f"Geschwindigkeit:       {score_color(speeding)}{speeding}{Back.RESET}")
-    print(f"Tag, Zeit, Straßenart: {score_color(payd)}{payd}{Back.RESET}")
-
-def print_badge(badge):
-    match badge.get("badgeType"):
+def print_badge(badge: Badge):
+    match badge.badgeType:
         case "MONTH":
-            print(f"{datetime.fromtimestamp(badge.get('date')/1000).strftime('%B %Y')}: {badge_color(badge)}")
+            print(f"{datetime.fromtimestamp(badge.date / 1000).strftime('%B %Y')}: {badge_color(badge)}")
         case "DAY":
-            print(f"{datetime.fromtimestamp(badge.get('date')/1000).strftime('%Y-%m-%d')}: {badge_color(badge)}")
-
+            print(f"{datetime.fromtimestamp(badge.date / 1000).strftime('%Y-%m-%d')}: {badge_color(badge)}")
 
 def score_color(score):
     thresholds = [
@@ -54,7 +46,7 @@ def score_color(score):
     return next(color for threshold, color in thresholds if score >= threshold)
 
 def badge_color(badge):
-    match badge.get("level"):
+    match badge.level:
         case 1:
             return f"{Back.YELLOW}GOLD{Back.RESET}"
         case 2:
