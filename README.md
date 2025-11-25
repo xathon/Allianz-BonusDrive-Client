@@ -34,7 +34,7 @@ As a library, you can just do:
 from allianz_bonusdrive_client import BonusdriveAPIClient
 base_url = "https://example.com"  # Replace with the actual base URL
 email = "user@example.com"        # Replace with the user's email
-password = "securepassword"       # Replace with the user's password
+password = "securepassword"       # Replace with the user's password. Optional if TGT is provided.
 tgt = None                        # Optional: Provide a TGT if available
 
 # Create an instance of the client
@@ -52,7 +52,12 @@ From PyPI:
 pip install allianz-bonusdrive-client[cli]
 ```
 
-On first start, the client should ask you for your BonusDrive email (use the one you tracked the trips with, that's not necessarily the same as the car owner's account!) and password. It then requests a TGT and stores it in .env, it will be used in the future.
+Then you can run the client:
+```
+$ python3 -m allianz_bonusdrive_client.cli -h
+usage: Allianz BonusDrive Client [-h] [--geo-lookup] [--raw] [-v] {last-trip,badges-daily,badges-monthly,scores,details,trips}
+```
+On first start, the client should ask you for your BonusDrive email (use the one you tracked the trips with, that's not necessarily the same as the car owner's account!) and password. It then requests a TGT and stores it in .env, it will be used in the future. Alternatively, provide a TGT by setting the environment variable.
 
 ## Disclaimers
 - This project pretends to be the BonusDrive app, using HTTP headers. This a) may break at any point and b) is very much not intended behavior and might be against ToS, no idea. Try to keep your API requests low. I'm not responsible if anything happens to your account, insurance contract, Club Penguin membership, yada yada.
