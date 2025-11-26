@@ -71,7 +71,7 @@ class BonusdriveAPIClient:
                 headers=self.headers,
             )
             tgt_response.raise_for_status()
-            if tgt_response.status_code != 200:
+            if tgt_response.status_code != 201:
                 raise RuntimeError("Failed to obtain TGT")
             self.tgt = tgt_response.text.strip()
         except requests.RequestException as e:
