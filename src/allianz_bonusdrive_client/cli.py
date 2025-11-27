@@ -1,4 +1,5 @@
 import argparse
+from dataclasses import asdict
 from datetime import datetime
 import json
 from dotenv import load_dotenv
@@ -48,7 +49,9 @@ if __name__ == "__main__":
                 trip = client.get_trips_raw(amount=1)[0]["trip"]
                 if args.geo_lookup:
                     trip = client.get_trip_details(tripId=trip["tripId"])
-                print(json.dumps(trip, indent=4))
+                    print(json.dumps(asdict(trip), indent=4))
+                else:
+                    print(json.dumps(trip, indent=4))
                 exit(0)
             trip = client.get_trips(amount=1)[0]
             if args.geo_lookup:
@@ -60,7 +63,9 @@ if __name__ == "__main__":
                 for trip in trips:
                     if args.geo_lookup:
                         trip = client.get_trip_details(tripId=trip["trip"]["tripId"])
-                    print(json.dumps(trips, indent=4))
+                        print(json.dumps(asdict(trip), indent=4))
+                    else:
+                        print(json.dumps(trip, indent=4))
                     print("-" * 20)
                 exit(0)
             trips = client.get_trips(amount=8)
@@ -99,7 +104,7 @@ if __name__ == "__main__":
         case "details":
             if args.raw:
                 trip = client.get_trip_details(tripId=None) # Pass None to get the latest trip, TODO make parameter for tripId
-                print(json.dumps(trip, indent=4))
+                print(json.dumps(asdict(trip), indent=4))
                 exit(0)
             trip = client.get_trip_details(tripId=None) # Pass None to get the latest trip, TODO make parameter for tripId
             print_trip_details(trip)
