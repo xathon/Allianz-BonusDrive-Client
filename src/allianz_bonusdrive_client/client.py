@@ -584,8 +584,8 @@ class BonusdriveAPIClient:
             private=trip_data["private"],
             tripUUID=trip_data["tripUUID"],
             purpose=trip_data["purpose"],
-            decoded_geometry=None,
-            start_point_string=None,
-            end_point_string=None,
+            decoded_geometry=trip_data.get("decoded_geometry"),
+            start_point_string=trip_data.get("start_point_string"),
+            end_point_string=trip_data.get("end_point_string"),
         )
         return trip
