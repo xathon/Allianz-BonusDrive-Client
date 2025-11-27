@@ -470,7 +470,7 @@ class BonusdriveAPIClient:
                         features = start_geo.get("features") or []
                         if features and isinstance(features, list) and features[0]:
                             props = features[0].get("properties") or {}
-                            start_name = props.get("name")
+                            start_name = props.get("name") or f"{props.get("street")} {props.get("housenumber") or ""}" or ""
                             start_city = props.get("city")
                             start_country = props.get("country")
                     trip_data["start_point_string"] = (
@@ -489,7 +489,7 @@ class BonusdriveAPIClient:
                         features = end_geo.get("features") or []
                         if features and isinstance(features, list) and features[0]:
                             props = features[0].get("properties") or {}
-                            end_name = props.get("name")
+                            end_name = props.get("name") or f"{props.get("street")} {props.get("housenumber") or ""}" or ""
                             end_city = props.get("city")
                             end_country = props.get("country")
                     trip_data["end_point_string"] = (
