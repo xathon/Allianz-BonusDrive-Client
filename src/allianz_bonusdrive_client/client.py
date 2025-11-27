@@ -451,14 +451,17 @@ class BonusdriveAPIClient:
         if response.status_code != 200:
             raise RuntimeError("Failed to obtain trip details")
         trip_data = response.json()
-        if self.photon:
-            polyline_points = trip_data.get("geometry")
-            if polyline_points:
-                decoded_points = polyline.decode(polyline_points, 6)
-                trip_data["decoded_geometry"] = decoded_points
-                if decoded_points:
-                    start_point_coordinates = decoded_points[0]
-                    start_name = ""
+        
+        polyline_points = trip_data.get("geometry")
+        if polyline_points:
+            decoded_points = polyline.decode(polyline_points, 6)
+            trip_data["decoded_geometry"] = decoded_points
+            if decoded_points:
+                start_point_coordinates = decoded_points[0]
+                start_name = ""
+                end_point_coordinates = decoded_points[-1]
+                end_name = ""
+                if self.photon:
                     try:
                         start_geo = self.photon.reverse_geocode(
                             start_point_coordinates[0], start_point_coordinates[1]
@@ -476,9 +479,6 @@ class BonusdriveAPIClient:
                     trip_data["start_point_string"] = (
                         f"{start_name}, {start_city}, {start_country}"
                     )
-
-                    end_point_coordinates = decoded_points[-1]
-                    end_name = ""
                     try:
                         end_geo = self.photon.reverse_geocode(
                             end_point_coordinates[0], end_point_coordinates[1]
@@ -495,6 +495,12 @@ class BonusdriveAPIClient:
                     trip_data["end_point_string"] = (
                         f"{end_name}, {end_city}, {end_country}"
                     )
+                else:
+                    lat, lon = start_point_coordinates
+                    trip_data["start_point_string"] = f"{'N' if lat >= 0 else 'S'}{abs(lat):.6f}, {'E' if lon >= 0 else 'W'}{abs(lon):.6f}"
+
+                    lat_e, lon_e = end_point_coordinates
+                    trip_data["end_point_string"] = f"{'N' if lat_e >= 0 else 'S'}{abs(lat_e):.6f}, {'E' if lon_e >= 0 else 'W'}{abs(lon_e):.6f}"
 
         vehicle_data = trip_data["vehicle"]
         user_data = trip_data["user"]
