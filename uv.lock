@@ -4,7 +4,7 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "allianz-bonusdrive-client"
-version = "0.5.2"
+version = "0.5.3"
 source = { editable = "." }
 dependencies = [
     { name = "certifi" },
@@ -29,7 +29,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "certifi", specifier = ">=2025.10.5" },
-    { name = "charset-normalizer", specifier = ">=3.4.3,<4.0.0" },
+    { name = "charset-normalizer", specifier = ">=3.4.0,<4.0.0" },
     { name = "colorama", marker = "extra == 'cli'", specifier = ">=0.4.6,<1.0.0" },
     { name = "idna", specifier = ">=3.10,<4.0" },
     { name = "polyline", specifier = ">=2.0.3,<3.0.0" },

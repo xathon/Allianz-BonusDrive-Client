@@ -1,6 +1,6 @@
 [project]
 name = "Allianz-Bonusdrive-Client"
-version = "0.5.2"
+version = "0.5.3"
 description = "A client for the Allianz BonusDrive program"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
     "certifi>=2025.10.5",
-    "charset-normalizer>=3.4.3,<4.0.0",
+    "charset-normalizer>=3.4.0,<4.0.0",
     "idna>=3.10,<4.0",
     "polyline>=2.0.3,<3.0.0",
     "requests>=2.32.0,<3.0.0",
