@@ -5,6 +5,7 @@ import json
 from dotenv import load_dotenv
 import os
 from colorama import init
+from getpass import getpass
 
 from .client import BonusdriveAPIClient
 from .utils.constants import BASE_URL
@@ -31,7 +32,7 @@ PHOTON_URL = os.getenv("PHOTON_URL")
 
 if not TGT:
     EMAIL = input("Enter your email: ")
-    PASSWORD = input("Enter your password: ")
+    PASSWORD = getpass("Enter your password: ")
 else:
     EMAIL = ""
     PASSWORD = ""
