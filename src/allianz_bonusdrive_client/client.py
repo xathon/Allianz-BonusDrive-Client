@@ -52,8 +52,12 @@ class BonusdriveAPIClient:
             "X-Requested-With": "XMLHttpRequest",
         }
 
-    def request_tgt(self):
-        """Request a new TGT using the provided username and password."""
+    def request_tgt(self) -> str:
+        """Request a new TGT using the provided username and password.
+        
+        Returns:
+            str: The TGT token string.
+        """
         if not self.username or not self.password:
             raise ValueError(
                 "Please provide your username and password to request a TGT"
@@ -74,6 +78,7 @@ class BonusdriveAPIClient:
             if tgt_response.status_code != 201:
                 raise RuntimeError("Failed to obtain TGT")
             self.tgt = tgt_response.text.strip()
+            return self.tgt
         except requests.RequestException as e:
             raise RuntimeError("Failed to obtain TGT") from e
 
