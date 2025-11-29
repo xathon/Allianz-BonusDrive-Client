@@ -2,10 +2,11 @@ import argparse
 from dataclasses import asdict
 from datetime import datetime
 import json
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key, find_dotenv
 import os
 from colorama import init
 from getpass import getpass
+from pathlib import Path
 
 from .client import BonusdriveAPIClient
 from .utils.constants import BASE_URL
@@ -27,6 +28,19 @@ parser.add_argument("--geo-lookup", "-g", action="store_true", help="Enable geol
 parser.add_argument("--raw", "-r", action="store_true", help="Output raw JSON data")
 parser.add_argument('-v', '--version', action='version', version=version('allianz-bonusdrive-client'))
 
+
+def save_tgt_to_env(tgt: str) -> None:
+    """Save the TGT to a .env file in the current directory."""
+    env_path = find_dotenv()
+    if not env_path:
+        # Create .env file if it doesn't exist
+        env_path = Path.cwd() / ".env"
+        env_path.touch()
+        env_path = str(env_path)
+    set_key(env_path, "TGT", tgt)
+    print(f"TGT saved to {env_path}")
+
+
 TGT = os.getenv("TGT") # TODO check how long the TGT is valid
 PHOTON_URL = os.getenv("PHOTON_URL")
 
@@ -39,6 +53,11 @@ else:
 
 if __name__ == "__main__":
     client = BonusdriveAPIClient(BASE_URL, EMAIL, PASSWORD, TGT, PHOTON_URL)
+
+    # Request TGT if not present and save it to .env
+    if not TGT:
+        new_tgt = client.request_tgt()
+        save_tgt_to_env(new_tgt)
 
     # Authenticate the client
     client.authenticate()

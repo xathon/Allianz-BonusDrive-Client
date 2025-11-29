@@ -16,6 +16,25 @@ def api_client(mock_session):
         password="password123",
     )
 
+def test_request_tgt_returns_tgt(api_client, mock_session):
+    mock_session.post.return_value.status_code = 201
+    mock_session.post.return_value.text = "mock_tgt_token"
+
+    result = api_client.request_tgt()
+
+    assert result == "mock_tgt_token"
+    assert api_client.tgt == "mock_tgt_token"
+
+def test_request_tgt_without_credentials():
+    client = BonusdriveAPIClient(
+        base_url="https://example.com",
+        email=None,
+        password=None,
+    )
+    
+    with pytest.raises(ValueError, match="Please provide your username and password"):
+        client.request_tgt()
+
 def test_authenticate_success(api_client, mock_session):
     mock_session.post.return_value.status_code = 200
     mock_session.post.return_value.text = "mock_tgt"
