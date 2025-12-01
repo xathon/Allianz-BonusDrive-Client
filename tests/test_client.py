@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from allianz_bonusdrive_client.client import BonusdriveAPIClient
 
 
@@ -36,8 +36,21 @@ def test_request_tgt_without_credentials():
         client.request_tgt()
 
 def test_authenticate_success(api_client, mock_session):
-    mock_session.post.return_value.status_code = 200
-    mock_session.post.return_value.text = "mock_tgt"
+    # First post returns 201 for TGT, second post returns 200 for Service Ticket
+    tgt_response = MagicMock()
+    tgt_response.status_code = 201
+    tgt_response.text = "mock_tgt"
+    
+    st_response = MagicMock()
+    st_response.status_code = 200
+    st_response.text = "mock_st"
+    st_response.cookies = {}
+    
+    cookies_response = MagicMock()
+    cookies_response.status_code = 200
+    cookies_response.cookies = {}
+    
+    mock_session.post.side_effect = [tgt_response, st_response, cookies_response]
     mock_session.get.return_value.status_code = 200
     mock_session.get.return_value.json.return_value = {"userId": 12345}
 
@@ -57,11 +70,65 @@ def test_get_trips(api_client, mock_session):
     api_client.authenticated = True
     api_client.userId = 12345
     mock_session.get.return_value.status_code = 200
-    mock_session.get.return_value.json.return_value = {"items": [{"trip": "trip1"}]}
+    mock_session.get.return_value.json.return_value = {"items": [{
+        "trip": {
+            "tripId": "trip1",
+            "vehicle": {
+                "vehicleId": "v1",
+                "make": "TestMake",
+                "model": "TestModel"
+            },
+            "user": {
+                "userId": "u1",
+                "publicDisplayName": "Test User",
+                "firstName": "Test",
+                "lastName": "User"
+            },
+            "tripScores": {
+                "scores": {
+                    "over.speeding": 100,
+                    "speeding": 100,
+                    "distracted.driving": 100,
+                    "payd": 100,
+                    "overall": 100,
+                    "harsh.cornering": 100,
+                    "harsh.acceleration": 100,
+                    "harsh.braking": 100,
+                    "mileage": 100
+                },
+                "scoreType": "daily"
+            },
+            "tripStartTimestampUtc": "2023-01-01T00:00:00Z",
+            "tripEndTimestampUtc": "2023-01-01T01:00:00Z",
+            "tripStartTimestampLocal": "2023-01-01T01:00:00",
+            "tripEndTimestampLocal": "2023-01-01T02:00:00",
+            "tripProcessingEndTimestampUtc": "2023-01-01T01:05:00Z",
+            "kilometers": 50.0,
+            "avgKilometersPerHour": 50.0,
+            "maxKilometersPerHour": 100.0,
+            "seconds": 3600,
+            "secondsOfIdling": 60,
+            "timeZoneOffsetMillis": 3600000,
+            "tripStatus": "COMPLETED",
+            "transportMode": "CAR",
+            "transportModeMessageKey": "car",
+            "geometry": "",
+            "reconstructedStartGeometry": "",
+            "tripStartStatus": "STARTED",
+            "verified": True,
+            "hasAlerts": False,
+            "tripScore": 100,
+            "eventsCount": 0,
+            "private": False,
+            "tripUUID": "uuid123",
+            "purpose": "COMMUTE"
+        }
+    }]}
 
     trips = api_client.get_trips()
 
-    assert trips == [{"trip": "trip1"}]
+    assert len(trips) == 1
+    assert trips[0].tripId == "trip1"
 
 def test_get_trips_not_authenticated(api_client):
     api_client.authenticated = False
@@ -86,11 +153,11 @@ def test_get_badges(api_client, mock_session):
     with patch.object(api_client, "get_vehicleId", return_value="vehicle123"):
 
         mock_session.get.return_value.status_code = 200
-        mock_session.get.return_value.json.return_value = {"badges": []}
+        mock_session.get.return_value.json.return_value = []
 
         badges = api_client.get_badges()
 
-        assert badges == {"badges": []}
+        assert badges == []
 
 def test_get_badges_invalid_type(api_client):
     api_client.authenticated = True
@@ -103,11 +170,11 @@ def test_get_scores(api_client, mock_session):
     api_client.userId = 12345
     with patch.object(api_client, "get_vehicleId", return_value="vehicle123"):
         mock_session.get.return_value.status_code = 200
-        mock_session.get.return_value.json.return_value = {"scores": []}
+        mock_session.get.return_value.json.return_value = []
 
         scores = api_client.get_scores()
 
-        assert scores == {"scores": []}
+        assert scores == []
 
 def test_get_scores_invalid_dates(api_client):
     api_client.authenticated = True
@@ -120,8 +187,59 @@ def test_get_trip_details(api_client, mock_session):
     api_client.userId = 12345
     with patch.object(api_client, "get_vehicleId", return_value="vehicle123"):
         mock_session.get.return_value.status_code = 200
-        mock_session.get.return_value.json.return_value = {"trip": "details"}
+        mock_session.get.return_value.json.return_value = {
+            "tripId": "trip123",
+            "vehicle": {
+                "vehicleId": "v1",
+                "make": "TestMake",
+                "model": "TestModel"
+            },
+            "user": {
+                "userId": "u1",
+                "publicDisplayName": "Test User",
+                "firstName": "Test",
+                "lastName": "User"
+            },
+            "tripScores": {
+                "scores": {
+                    "over.speeding": 100,
+                    "speeding": 100,
+                    "distracted.driving": 100,
+                    "payd": 100,
+                    "overall": 100,
+                    "harsh.cornering": 100,
+                    "harsh.acceleration": 100,
+                    "harsh.braking": 100,
+                    "mileage": 100
+                },
+                "scoreType": "daily"
+            },
+            "tripStartTimestampUtc": "2023-01-01T00:00:00Z",
+            "tripEndTimestampUtc": "2023-01-01T01:00:00Z",
+            "tripStartTimestampLocal": "2023-01-01T01:00:00",
+            "tripEndTimestampLocal": "2023-01-01T02:00:00",
+            "tripProcessingEndTimestampUtc": "2023-01-01T01:05:00Z",
+            "kilometers": 50.0,
+            "avgKilometersPerHour": 50.0,
+            "maxKilometersPerHour": 100.0,
+            "seconds": 3600,
+            "secondsOfIdling": 60,
+            "timeZoneOffsetMillis": 3600000,
+            "tripStatus": "COMPLETED",
+            "transportMode": "CAR",
+            "transportModeMessageKey": "car",
+            "geometry": "",
+            "reconstructedStartGeometry": "",
+            "tripStartStatus": "STARTED",
+            "verified": True,
+            "hasAlerts": False,
+            "tripScore": 100,
+            "eventsCount": 0,
+            "private": False,
+            "tripUUID": "uuid123",
+            "purpose": "COMMUTE"
+        }
 
-        trip_details = api_client.get_trip_details(tripId="trip123", photon=None)
+        trip_details = api_client.get_trip_details(tripId="trip123")
 
-        assert trip_details == {"trip": "details"}
+        assert trip_details.tripId == "trip123"

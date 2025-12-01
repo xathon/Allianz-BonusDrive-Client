@@ -1,4 +1,3 @@
-import pytest
 import os
 import tempfile
 from pathlib import Path
@@ -11,7 +10,7 @@ def test_save_tgt_to_env_creates_new_file():
         original_cwd = os.getcwd()
         os.chdir(tmpdir)
         try:
-            # Mock TGT env var to prevent input() prompt at module level
+            # Mock find_dotenv to return empty (no existing .env found)
             with patch.dict(os.environ, {"TGT": "existing_tgt"}):
                 from allianz_bonusdrive_client.cli import save_tgt_to_env
             
@@ -20,7 +19,9 @@ def test_save_tgt_to_env_creates_new_file():
             if env_file.exists():
                 env_file.unlink()
             
-            save_tgt_to_env("test_tgt_token")
+            # Patch find_dotenv to return empty string (simulating no .env found)
+            with patch("allianz_bonusdrive_client.cli.find_dotenv", return_value=""):
+                save_tgt_to_env("test_tgt_token")
             
             env_path = Path(tmpdir) / ".env"
             assert env_path.exists()
@@ -45,7 +46,9 @@ def test_save_tgt_to_env_updates_existing_file():
             with patch.dict(os.environ, {"TGT": "existing_tgt"}):
                 from allianz_bonusdrive_client.cli import save_tgt_to_env
             
-            save_tgt_to_env("new_tgt_token")
+            # Patch find_dotenv to return the temp .env path
+            with patch("allianz_bonusdrive_client.cli.find_dotenv", return_value=str(env_path)):
+                save_tgt_to_env("new_tgt_token")
             
             content = env_path.read_text()
             assert "PHOTON_URL=http://example.com" in content
