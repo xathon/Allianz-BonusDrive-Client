@@ -6,7 +6,7 @@ from dotenv import load_dotenv, set_key, find_dotenv
 import os
 from colorama import init
 from getpass import getpass
-from pathlib import Path
+import pathlib
 
 from .client import BonusdriveAPIClient
 from .utils.constants import BASE_URL
@@ -34,7 +34,7 @@ def save_tgt_to_env(tgt: str) -> None:
     env_path = find_dotenv()
     if not env_path:
         # Create .env file if it doesn't exist
-        env_path = Path.cwd() / ".env"
+        env_path = pathlib.Path.cwd() / ".env"
         env_path.touch()
         env_path = str(env_path)
     set_key(env_path, "TGT", tgt)

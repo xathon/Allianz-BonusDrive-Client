@@ -7,6 +7,7 @@ from allianz_bonusdrive_client.utils.dataclasses import Trip, Scores, Badge
 
 def print_trip_details(trip: Trip):
     print(f"Trip ID:             {trip.tripId}")
+    print(f"Fahrer:              {trip.user.firstName} {trip.user.lastName}")
     print(f"Startzeit:           {datetime.fromtimestamp(trip.tripStartTimestampLocal / 1000).strftime('%Y-%m-%d %H:%M:%S')}")
     if trip.start_point_string:
         print(f"Startort:            {trip.start_point_string}")
