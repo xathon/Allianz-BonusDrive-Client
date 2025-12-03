@@ -63,7 +63,7 @@ On first start, the client should ask you for your BonusDrive email (use the one
 - This project pretends to be the BonusDrive app, using HTTP headers. This a) may break at any point and b) is very much not intended behavior and might be against ToS, no idea. Try to keep your API requests low. I'm not responsible if anything happens to your account, insurance contract, Club Penguin membership, yada yada.
 - I haven't yet found out how long a TGT is valid, or if it expires at any point. STs are invalidated after each use (successful or not), good job!
 - LLMs have been involved in creating and debugging this program. I *mostly* know what I'm doing, so that should be fine? See above for my responsibilities.
-- This program, unfortunately, is written in Python. The only reason for this is because I want to integrate it into Home Assistant/HACS at some point. Once this is complete. Probably.
+- This program, unfortunately, is written in Python. The only reason for this is because I want to integrate it into Home Assistant/HACS at some point. Once this is complete. Probably. (Update: [done!](https://github.com/xathon/Allianz-BonusDrive-HomeAssistant))
 
 ## License
 
