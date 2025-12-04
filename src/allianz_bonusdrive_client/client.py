@@ -82,6 +82,25 @@ class BonusdriveAPIClient:
         except requests.RequestException as e:
             raise RuntimeError("Failed to obtain TGT") from e
 
+    def _handle_response(self, response, retry_func, *args, **kwargs):
+        """Handle response and re-authenticate on 401 errors.
+        
+        Args:
+            response: The HTTP response object.
+            retry_func: The function to retry after re-authentication.
+            *args: Positional arguments to pass to retry_func.
+            **kwargs: Keyword arguments to pass to retry_func.
+            
+        Returns:
+            A tuple (should_return, result) where should_return is True if the
+            caller should return result immediately (due to retry).
+        """
+        if response.status_code == 401:
+            self.authenticated = False
+            self.authenticate()
+            return (True, retry_func(*args, **kwargs))
+        return (False, response)
+
     def authenticate(self):
         """Authenticate the user and store session cookies."""
         if not self.tgt:
@@ -157,6 +176,10 @@ class BonusdriveAPIClient:
             },
             cookies=self.session.cookies,
         )
+        retried, result = self._handle_response(response, self.get_trips_raw, amount, offset)
+        if retried:
+            return result
+        response = result
         response.raise_for_status()
         trips_data = response.json()["items"]
         return trips_data
@@ -285,6 +308,10 @@ class BonusdriveAPIClient:
             },
             cookies=self.session.cookies,
         )
+        retried, result = self._handle_response(response, self.get_vehicleId)
+        if retried:
+            return result
+        response = result
         response.raise_for_status()
         if not response.json():
             raise RuntimeError("No vehicles found for the authenticated user.")
@@ -323,6 +350,10 @@ class BonusdriveAPIClient:
             },
             cookies=self.session.cookies,
         )
+        retried, result = self._handle_response(response, self.get_badges_raw, type, endDate, startDate)
+        if retried:
+            return result
+        response = result
         response.raise_for_status()
         badges_data = response.json()
         return badges_data
@@ -390,6 +421,10 @@ class BonusdriveAPIClient:
             },
             cookies=self.session.cookies,
         )
+        retried, result = self._handle_response(response, self.get_scores_raw, endDate, startDate)
+        if retried:
+            return result
+        response = result
         response.raise_for_status()
         # TODO this may return 204 if no scores are available in the given date range
         scores = response.json() if response.status_code != 204 else []
@@ -452,6 +487,10 @@ class BonusdriveAPIClient:
             },
             cookies=self.session.cookies,
         )
+        retried, result = self._handle_response(response, self.get_trip_details, tripId)
+        if retried:
+            return result
+        response = result
         response.raise_for_status()
         if response.status_code != 200:
             raise RuntimeError("Failed to obtain trip details")
