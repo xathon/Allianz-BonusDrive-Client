@@ -117,7 +117,7 @@ class BonusdriveAPIClient:
                     }
                 ),
                 headers=self.headers,
-                cookies=self.session.cookies,  # Use cookies from the cookiejar
+                #cookies=self.session.cookies,  # Use cookies from the cookiejar
             )
             if st_response.status_code == 404:
                 # TGT is invalid, re-authenticate and retry
@@ -131,7 +131,7 @@ class BonusdriveAPIClient:
         except requests.RequestException as e:
             raise RuntimeError("Failed to obtain Service Ticket") from e
         self.session.cookies.update(st_response.cookies)
-        self.headers.pop("Content-Type", None)
+        #self.headers.pop("Content-Type", None)
 
         # Step 3: Use ST to set cookies
         cookies_response = self.session.post(
