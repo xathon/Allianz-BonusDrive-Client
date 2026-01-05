@@ -518,11 +518,22 @@ class BonusdriveAPIClient:
                         if features and isinstance(features, list) and features[0]:
                             props = features[0].get("properties") or {}
                             start_name = props.get("name") or f"{props.get("street")} {props.get("housenumber") or ""}" or ""
-                            start_city = props.get("city")
-                            start_country = props.get("country")
-                    trip_data["start_point_string"] = (
-                        f"{start_name}, {start_city}, {start_country}"
-                    )
+                            start_city = props.get("city") or ""
+                            start_country = props.get("country") or ""
+                        start_point_string = ""
+                        if start_name != "":
+                            start_point_string = f"{start_name}"
+                        if start_city != "":
+                            if start_point_string != "":
+                                start_point_string += f", {start_city}"
+                            else:
+                                start_point_string = f"{start_city}"
+                        if start_country != "":
+                            if start_point_string != "":
+                                start_point_string += f", {start_country}"
+                            else:
+                                start_point_string = f"{start_country}"
+                        trip_data["start_point_string"] = start_point_string
                     try:
                         end_geo = self.photon.reverse_geocode(
                             end_point_coordinates[0], end_point_coordinates[1]
@@ -536,9 +547,20 @@ class BonusdriveAPIClient:
                             end_name = props.get("name") or f"{props.get("street")} {props.get("housenumber") or ""}" or ""
                             end_city = props.get("city")
                             end_country = props.get("country")
-                    trip_data["end_point_string"] = (
-                        f"{end_name}, {end_city}, {end_country}"
-                    )
+                        end_point_string = ""
+                        if end_name != "":
+                            end_point_string = f"{end_name}"
+                        if end_city != "":
+                            if end_point_string != "":
+                                end_point_string += f", {end_city}"
+                            else:
+                                end_point_string = f"{end_city}"
+                        if end_country != "":
+                            if end_point_string != "":
+                                end_point_string += f", {end_country}"
+                            else:
+                                end_point_string = f"{end_country}"
+                        trip_data["end_point_string"] = end_point_string
                 else:
                     lat, lon = start_point_coordinates
                     trip_data["start_point_string"] = f"{'N' if lat >= 0 else 'S'}{abs(lat):.6f}, {'E' if lon >= 0 else 'W'}{abs(lon):.6f}"
