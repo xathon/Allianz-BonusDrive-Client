@@ -1,6 +1,6 @@
 [project]
 name = "Allianz-Bonusdrive-Client"
-version = "0.6.1"
+version = "0.7.0"
 description = "A client for the Allianz BonusDrive program"
 readme = "README.md"
 requires-python = ">=3.13"

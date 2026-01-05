@@ -7,7 +7,7 @@ class PhotonClient:
         self.headers = {
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": f"AllianzBonusDriveClient/1.0",
+            "User-Agent": "AllianzBonusDriveClient/1.0",
         }
 
     def reverse_geocode(self, latitude: float, longitude: float) -> dict:
